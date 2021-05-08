@@ -1,0 +1,617 @@
+GET _search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET _cluster/health
+
+GET _cat/nodes
+
+GET _cat/indices?v
+
+GET _security/role
+
+GET _cat/nodes
+
+PUT /pages
+
+GET _cat/shards?v
+
+DELETE /pages
+
+PUT /products
+{
+  "settings": {
+    "number_of_shards": 2,
+    "number_of_replicas": 2
+  }
+}
+
+POST /products/_doc
+{
+  "name":"Coffee Maker",
+  "price": 64,
+  "in_stock": 10
+}
+
+POST /products/_doc
+{
+  "name":"Washing Machine",
+  "price": 659,
+  "in_stock": 3
+}
+
+PUT /products/_doc/100
+{
+  "name":"Toaster",
+  "price": 49,
+  "in_stock": 4
+}
+
+GET /products/_doc/100
+
+# updating an existing field
+POST /products/_update/100
+{
+  "doc":{
+    "in_stock": 1
+  }
+}
+
+# adding a new field with a value
+POST /products/_update/100
+{
+  "doc":{
+    "tags": ["cooking", "kitchen"]
+  }
+}
+
+# decrease the in_stock value with 1 from the current value
+POST /products/_update/100
+{
+  "script": {
+    "source": "ctx._source.in_stock--"
+  }
+}
+
+# increase the in_stock value with 1 from the current value
+POST /products/_update/100
+{
+  "script": {
+    "source": "ctx._source.in_stock++"
+  }
+}
+
+
+# set the in_stock value to a certain value
+POST /products/_update/100
+{
+  "script": {
+    "source": "ctx._source.in_stock = 10"
+  }
+}
+
+# reduce the value of in_stock by the value of a parameter
+POST /products/_update/100
+{
+  "script": {
+    "source": "ctx._source.in_stock -= params.quantity",
+    "params": {
+      "quantity": 4
+    }
+  }
+}
+
+# if the value of in_stock is 0, we do not update and deduce 1
+POST /products/_update/100
+{
+  "script": {
+    "source": """
+      if (ctx._source.in_stock == 0) {
+        ctx.op = 'noop';
+      }
+      
+      ctx._source.in_stock --;
+    """
+  }
+}
+
+# upserting a new product - if it exists will be updated and if not - created 
+POST /products/_update/101
+{
+  "script": {
+    "source": "ctx._source.in_stock++"
+  },
+  "upsert": {
+    "name": "Blender",
+    "price": 399,
+    "in_stock": 5
+  }
+}
+
+GET /products/_doc/101
+
+# replacing a document
+PUT /products/_doc/100
+{
+  "name": "Toaster",
+  "price": 59,
+  "in_stock": 4
+}
+
+GET /products/_doc/100
+
+# deleting a document
+DELETE /products/_doc/101
+
+GET /products/_doc/101
+
+# concurency control is mainly used when multiple threads update the same document concurrently
+GET /products/_doc/100
+
+POST /products/_update/100?if_primary_term=1&if_seq_no=19
+{
+  "doc": {
+    "in_stock": 5
+  }
+}
+
+# updating multiple documents with a query; in this case reduce the in_stock of all documents by 1
+POST /products/_update_by_query
+{
+  "script": {
+    "source": "ctx._source.in_stock--"
+  },
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+# dealing with version conflicts
+POST /products/_update_by_query
+{
+  "conflicts": "proceed", 
+  "script": {
+    "source": "ctx._source.in_stock--"
+  },
+  "query": {
+    "match_all": {}
+  }
+}
+
+# deleting by query
+POST /products/_delete_by_query
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+# bulk processing
+POST /_bulk
+{ "index": {"_index": "products", "_id": 200}}
+{ "name": "Espresso Machine", "price": 199, "in_stock": 9}
+{ "create": {"_index": "products", "_id": 201 }}
+{ "name": "Milk Frother", "price": 99, "in_stock": 6}
+
+POST /products/_bulk 
+{ "update": {"_id": 201 }}
+{ "doc": {"price": 129}}
+{ "delete": {"_id": 200 }}
+
+
+
+# importing a json with the bulk API of elastic cloud
+#
+#PS C:\Users\denis>  Invoke-WebRequest "https://ddyakov-test.es.us-east-1.aws.found.io:9243/products/_bulk?pretty&refresh" `
+#>>      -Method Post -ContentType "application/json" `
+#>>      -InFile .\products-bulk.json -UseBasicParsing `
+#>>      -Credential elastic
+#'''
+
+GET /products/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+# working with the analyzer
+POST _analyze
+{
+  "text": "two guys (2) walk into a bar  , but the third ... DUCKS! :-)",
+  "analyzer": "standard"
+}
+
+# the command below is equivalent to the one above
+POST _analyze
+{
+  "text": "two guys (2) walk into a bar  , but the third ... DUCKS! :-)",
+  "char_filter": [], 
+  "tokenizer": "standard",
+  "filter": ["lowercase"]
+}
+
+# the keyword data type
+POST _analyze
+{
+  "text": "two guys (2) walk into a bar  , but the third ... DUCKS! :-)",
+  "analyzer": "keyword"
+}
+
+# an example of type coercion
+PUT /coercion_test/_doc/1
+{
+  "price": 7.4
+}
+
+PUT /coercion_test/_doc/2
+{
+  "price": "7.4"
+}
+
+PUT /coercion_test/_doc/3
+{
+  "price": "7.4m"
+}
+
+GET /coercion_test/_doc/1
+
+# arrays
+POST /_analyze
+{
+  "text": ["Strings are simply", "mergeed together."],
+  "analyzer": "standard"
+  
+}
+
+# adding explicit mappings
+PUT /reviews
+{
+  "mappings": {
+    "properties": {
+      "rating": {"type": "float"},
+      "content": {"type": "text"},
+      "product_id": {"type": "integer"},
+      "author": {
+        "properties": {
+          "first_name": {"type": "text"},
+          "last_name": {"type": "text"},
+          "email": {"type": "keyword"}
+        }
+      }
+    }
+  }
+}
+
+PUT reviews/_doc/1
+{
+  "rating": 5.0,
+  "content": "Great course. Really teaches alot of Elasticsearch.",
+  "product_id": 123,
+  "author": {
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "johndoe123@gmail.com"
+  }
+}
+
+GET /reviews/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET /reviews/_mapping
+
+GET /reviews/_mapping/field/author.last_name
+
+PUT /reviews_dot_notation
+{
+  "mappings": {
+    "properties": {
+      "rating": {"type": "float"},
+      "content": {"type": "text"},
+      "product_id": {"type": "integer"},
+      "author.first_name": {"type": "text"},
+      "author.last_name": {"type": "text"},
+      "author.email": {"type": "keyword"}
+    }
+  }
+}
+
+GET /reviews_dot_notation/_mapping
+
+# adding mappings to existing indexes
+PUT /reviews/_mapping
+{
+  "properties": {
+    "created_at": {"type": "date"}
+  }
+}
+
+GET /reviews/_mapping
+
+# working with dates
+PUT /reviews/_doc/2
+{
+  "rating": 4.5,
+  "content": "Not bad. Not bad at all!",
+  "product_id": 123,
+  "created_at": "2015-03-27",
+  "author": {
+    "first_name": "Average",
+    "last_name": "Joe",
+    "email": "avgjoe@example.com"
+  }
+}
+
+PUT /reviews/_doc/3
+{
+  "rating": 3.5,
+  "content": "Could be better",
+  "product_id": 123,
+  "created_at": "2015-04-15T13:07:41Z",
+  "author": {
+    "first_name": "Spencer",
+    "last_name": "Pearson",
+    "email": "spearson@example.com"
+  }
+}
+
+PUT /reviews/_doc/4
+{
+  "rating": 5.0,
+  "content": "Incredible!",
+  "product_id": 123,
+  "created_at": "2015-01-28T09:21:51+01:00",
+  "author": {
+    "first_name": "Adam",
+    "last_name": "Jones",
+    "email": "adam.jones@example.com"
+  }
+}
+
+# Equivalent to 2015-07-04T12:01:24Z
+PUT /reviews/_doc/5
+{
+  "rating": 4.5,
+  "content": "Very useful",
+  "product_id": 123,
+  "created_at": 1436011284000,
+  "author": {
+    "first_name": "Taylor",
+    "last_name": "West",
+    "email": "twest@example.com"
+  }
+}
+
+GET /reviews/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+# reindexing documents with the reindex API
+GET /reviews/_mapping
+
+PUT /reviews_new
+{
+  "mappings" : {
+      "properties" : {
+        "author" : {
+          "properties" : {
+            "email" : {
+              "type" : "keyword",
+              "ignore_above": 256
+            },
+            "first_name" : {
+              "type" : "text"
+            },
+            "last_name" : {
+              "type" : "text"
+            }
+          }
+        },
+        "content" : {
+          "type" : "text"
+        },
+        "created_at" : {
+          "type" : "date"
+        },
+        "product_id" : {
+          "type" : "keyword"
+        },
+        "rating" : {
+          "type" : "float"
+        }
+      }
+    }
+  }
+
+POST /_reindex
+{
+  "source": {
+    "index": "reviews"
+  },
+  "dest" : {
+    "index": "reviews_new"
+  }
+}
+
+GET /reviews_new/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+POST /reviews_new/_delete_by_query
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+POST /_reindex
+{
+  "source": {
+    "index": "reviews"
+  },
+  "dest" : {
+    "index": "reviews_new"
+  },
+  "script": {
+    "source": """
+      if (ctx._source.product_id != null) {
+        ctx._source.product_id = ctx._source.product_id.toString();
+      }
+    """
+  }
+}
+
+# we can also only reindex documents that match a query
+POST /_reindex
+{
+  "source": {
+    "index": "reviews",
+    "query": {
+      "match_all": {}
+    }
+  },
+  "dest" : {
+    "index": "reviews_new"
+  }
+}
+
+# we can reindex only some of the fields - listed in a list
+POST /_reindex
+{
+  "source": {
+    "index": "reviews",
+    "_source": ["content", "created_at", "rating"]
+  },
+  "dest" : {
+    "index": "reviews_new"
+  }
+}
+
+# we can change a field's name
+POST /_reindex
+{
+  "source": {
+    "index": "reviews"
+  },
+  "dest" : {
+    "index": "reviews_new"
+  },
+  "script": {
+    "source": """
+    ctx._source.comment = ctx._source.remove("content");
+    """
+  }
+}
+
+# defining field aliases
+GET /reviews/_mapping
+
+PUT /reviews/_mapping
+{
+  "properties": {
+    "comment": {
+      "type": "alias",
+      "path": "content"
+    }
+  }
+}
+
+GET /reviews/_search
+{
+  "query": {
+    "match": {
+      "content": "outstanding"
+    }
+  }
+}
+
+GET /reviews/_search
+{
+  "query": {
+    "match": {
+      "comment": "outstanding"
+    }
+  }
+}
+
+# multi field mappings
+PUT /multi-field-test
+{
+  "mappings": {
+    "properties": {
+      "description": {
+        "type": "text"
+      },
+      "ingredients": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  }
+}
+
+POST /multi-field-test/_doc/1
+{
+  "description": "To make this spaghetti carbonara...",
+  "ingredients": ["bacon", "eggs","spaghetti"]
+}
+
+GET /multi-field-test/_doc/1
+
+GET /multi-field-test/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET /multi-field-test/_search
+{
+  "query": {
+    "match": {
+      "ingredients": "Spaghetti"
+    }
+  }
+}
+
+GET /multi-field-test/_search
+{
+  "query": {
+    "match": {
+      "ingredients.keyword": "spaghetti"
+    }
+  }
+}
+
+
