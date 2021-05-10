@@ -217,13 +217,13 @@ POST /products/_bulk
 
 
 
-# importing a json with the bulk API of elastic cloud
-#
-#PS C:\Users\denis>  Invoke-WebRequest "https://ddyakov-test.es.us-east-1.aws.found.io:9243/products/_bulk?pretty&refresh" `
-#>>      -Method Post -ContentType "application/json" `
-#>>      -InFile .\products-bulk.json -UseBasicParsing `
-#>>      -Credential elastic
-#'''
+# importing a jsaon with the bulk API of elastic cloud
+'''
+PS C:\Users\denis>  Invoke-WebRequest "https://ddyakov-test.es.us-east-1.aws.found.io:9243/products/_bulk?pretty&refresh" `
+>>      -Method Post -ContentType "application/json" `
+>>      -InFile .\products-bulk.json -UseBasicParsing `
+>>      -Credential elastic
+'''
 
 GET /products/_search
 {
@@ -614,4 +614,747 @@ GET /multi-field-test/_search
   }
 }
 
+# search queries
+GET /products/_search
+{
+  "query": {
+    "match": {
+      "name": "Pasta - Ravioli"
+    }
+  }
+}
 
+GET /products/_search?q=name:pasta
+
+GET /products/_search?q=*
+
+GET /products/_search?q=name:Lobster
+
+GET /products/_search?q=name:Tuna AND tags:Meat
+
+GET /products/_search
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+GET /products/_search?explain=true
+{
+  "query": {
+    "match": {
+      "name": "Pasta - Ravioli"
+    }
+  }
+}
+
+POST /products/_doc/1/_explain
+{
+  "query":{
+    "term": {
+      "name": {
+        "value": "lobster"
+      }
+    }
+  }
+}
+
+
+GET /products/_search
+{
+  "query": {
+    "term": {
+      "name": "lobster"
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "term": {
+      "name": "Lobster"
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "match": {
+      "name": "Lobster"
+    }
+  }
+}
+
+# using term search queries
+GET /products/_search
+{
+  "query": {
+    "term": {
+      "is_active": {
+        "value": "true"
+      }
+    }
+  }
+}
+
+# searching multiple terms
+GET /products/_search
+{
+  "query": {
+    "terms": {
+      "tags.keyword": [
+        "Soup",
+        "Cake"
+      ]
+    }
+  }
+}
+
+# return documents by ids
+GET /products/_search
+{
+  "query": {
+    "terms": {
+      "_id": [
+        "1",
+        "2",
+        "3"
+      ]
+    }
+  }
+}
+
+#alternatively
+GET /products/_search
+{
+  "query": {
+    "ids": {
+      "values": [1, 2, 3]
+    }
+  }
+}
+
+# when we want ranges
+GET /products/_search
+{
+  "query": {
+    "range": {
+      "in_stock": {
+        "gte": 10,
+        "lte": 20
+      }
+    }
+  }
+}
+
+GET /products/_search
+{
+  "query": {
+    "range": {
+      "created": {
+        "gte": "2007/01/01",
+        "lte": "2008/01/01"
+      }
+    }
+  }
+}
+
+# we can also adjsut the date format
+GET /products/_search
+{
+  "query": {
+    "range": {
+      "created": {
+        "gte": "01-01-2007",
+        "lte": "01-01-2008",
+        "format": "dd-MM-yyyy"
+      }
+    }
+  }
+}
+
+# we can also do date math
+GET /products/_search
+{
+  "query": {
+    "range": {
+      "created": {
+        "gte": "2007/01/01||-1y"
+      }
+    }
+  }
+}
+
+# matching documents with non-null values
+GET /products/_search
+{
+  "query": {
+    "exists": {
+      "field": "tags"
+    }
+  }
+}
+
+# matching documents with a prefix
+GET /products/_search
+{
+  "query": {
+    "prefix": {
+      "tags.keyword": {
+        "value": "Vege"
+      }
+    }
+  }
+}
+
+# matching documents with a wildcard
+GET /products/_search
+{
+  "query": {
+    "wildcard": {
+      "tags.keyword": {
+        "value": "*ea*"
+      }
+    }
+  }
+}
+
+# matching documents with a regex
+GET /products/_search
+{
+  "query": {
+    "regexp": {
+      "tags.keyword": {
+        "value": "Veg[a-zA-Z]+able*"
+      }
+    }
+  }
+}
+
+#Questions for this assignment
+#1 Please write a query matching products that didn’t sell very well, being products where the “sold” field has a value of less than 10 (sold < 10).
+
+GET /products/_search
+{
+  "query": {
+    "range": {
+      "sold": {
+        "lt": 10
+      }
+    }
+  }
+}
+
+#2 Please write a query that matches products that sold okay, meaning less than 30 and greater than or equal to 10 (sold < 30 && sold >= 10).
+
+GET /products/_search
+{
+  "query": {
+    "range": {
+      "sold": {
+        "lt": 30,
+        "gte": 10
+      }
+    }
+  }
+}
+
+#3 Please write a query that matches documents containing the term “Meat” within the “tags” field.
+
+GET /products/_search
+{
+  "query": {
+    "term": {
+      "tags.keyword": {
+        "value": "Meat"
+      }
+    }
+  }
+}
+
+#4 Please write a query matching documents containing one of the terms "Tomato" and "Paste" within the "name" field.
+
+#Hint: The query might not match anything... ;-)
+
+GET /products/_search
+{
+  "query": {
+    "terms": {
+      "name.keyword": ["Tomato", "Paste"]
+    }
+  }
+}
+
+#5 Please write a query that matches products with a "name" field including “pasta”, “paste”, or similar. The query should be dynamic and not use the "terms" query clause.
+
+GET /products/_search
+{
+  "query": {
+    "wildcard": {
+      "name": {
+        "value": "past*"
+      }
+    }
+  }
+}
+
+#6 Please write a query that matches products that contain a number within their "name" field.
+
+#Hint: You can use the following regular expression for this: [0-9]+
+
+GET /products/_search
+{
+  "query": {
+    "regexp": {
+      "name": "[0-9]+"
+    }
+  }
+}
+
+
+# full text search
+GET /recipe/_search
+{
+  "query": {
+    "match_all": {}
+  }    
+}
+
+
+GET /products/_search
+{
+  "query": {
+    "match_all": {}
+  }    
+}
+
+GET /recipe/_mapping
+
+# default operator is a logical or - not every term will appear in searches
+GET /recipe/_search
+{
+  "query": {
+    "match": {
+      "title": "Recipies with pasta and spaghetti"
+    }
+  }
+}
+
+# we can change this; now the query does not return any results
+GET /recipe/_search
+{
+  "query": {
+    "match": {
+      "title": {
+        "query": "Recipies with pasta and spaghetti",
+        "operator": "and"
+      }
+    }
+  }
+}
+
+GET /recipe/_search
+{
+  "query": {
+    "match": {
+      "title": {
+        "query": "pasta and spaghetti",
+        "operator": "and"
+      }
+    }
+  }
+}
+
+GET /recipe/_search
+{
+  "query": {
+    "match_phrase": {
+      "title": "Spaghetti Puttanesca"
+    }
+  }
+}
+
+GET /recipe/_search
+{
+  "query": {
+    "match_phrase": {
+      "title": "Puttanesca Spaghetti"
+    }
+  }
+}
+
+GET /recipe/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "pasta",
+      "fields": ["title", "description"]
+    }
+  }
+}
+
+#Questions for this assignment
+#1 Please write a query searching for the sentence "pasta with parmesan and spinach" within the "title" field, simulating that this sentence was entered by a user within a search field.
+
+GET /recipe/_search
+{
+  "query": {
+    "match": {
+      "title": "pasta with parmesan and spinach"
+    }
+  }
+}
+
+#2 Please write a query searching for phrase "pasta carbonara" within the "title" field.
+
+GET /recipe/_search
+{
+  "query": {
+    "match_phrase": {
+      "title": "pasta carbonara"
+    }
+  }
+}
+
+#3 Please write a query searching for the terms "pasta" or "pesto" within the "title" and "description" fields.
+
+GET /recipe/_search
+{
+  "query": {
+    "multi_match": {
+      "query": "pasta pesto",
+      "fields": ["title", "description"]
+    }
+  }
+}
+
+# querying with boolean logic
+GET /recipe/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "ingredients.name": "parmesan"
+          }
+        }
+      ],
+      "must_not": [
+        {
+          "match": {
+            "ingredients.name": "tuna"
+          }
+        }
+      ],
+      "should": [
+        {
+          "match": {
+            "ingredients.name": "parsley"
+          }
+        }
+      ],
+      "filter": [
+        {
+          "range": {
+            "preparation_time_minutes": {
+              "lte": 15
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+GET /recipe/_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "match": {
+          "ingredients.name": "parmesan"
+          }
+        }
+      ]
+    }
+  }
+}
+
+# using named queries
+
+GET /recipe/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "ingredients.name": {
+              "query": "parmesan",
+              "_name": "parmesan_must"
+            }
+          }
+        }
+      ],
+      "must_not": [
+        {
+          "match": {
+            "ingredients.name": {
+              "query": "tuna",
+              "_name": "tuna_mustnot"
+            }
+          }
+        }
+      ],
+      "should": [
+        {
+          "match": {
+            "ingredients.name": {
+              "query": "parsley",
+              "_name": "parsley_should"
+            }
+          }
+        }
+      ],
+      "filter": [
+        {
+          "range": {
+            "preparation_time_minutes": {
+              "lte": 15,
+              "_name": "prep_filter"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+# comparing a match vs a boolean query
+GET /recipe/_search
+{
+  "query": {
+    "match": {
+      "title": "Pasta carbonara"
+    }
+  }
+}
+
+GET /recipe/_search
+{
+  "query": {
+    "bool": {
+      "should": [
+        {
+          "term": {
+            "title": "pasta"
+          }
+        },
+        {
+          "term": {
+            "title": "carbonara"
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+GET /recipe/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "term": {
+            "title": "pasta"
+          }
+        },
+        {
+          "term": {
+            "title": "carbonara"
+          }
+        }
+      ]
+    }
+  }
+}
+
+# creating a new index and querying nested objects
+PUT /department
+{
+  "mappings": {
+    "properties": {
+      "name": {
+        "type": "text"
+      },
+      "employees": {
+        "type": "nested"
+      }
+    }
+  }
+}
+
+PUT /department/_doc/1
+{
+  "name": "Development",
+  "employees": [
+    {
+      "name": "Eric Green",
+      "age": 39,
+      "gender": "M",
+      "position": "Big Data Specialist"
+    },
+    {
+      "name": "James Taylor",
+      "age": 27,
+      "gender": "M",
+      "position": "Software Developer"
+    },
+    {
+      "name": "Gary Jenkins",
+      "age": 21,
+      "gender": "M",
+      "position": "Intern"
+    },
+    {
+      "name": "Julie Powell",
+      "age": 26,
+      "gender": "F",
+      "position": "Intern"
+    },
+    {
+      "name": "Benjamin Smith",
+      "age": 46,
+      "gender": "M",
+      "position": "Senior Software Engineer"
+    }
+  ]
+}
+
+PUT /department/_doc/2
+{
+  "name": "HR & Marketing",
+  "employees": [
+    {
+      "name": "Patricia Lewis",
+      "age": 42,
+      "gender": "F",
+      "position": "Senior Marketing Manager"
+    },
+    {
+      "name": "Maria Anderson",
+      "age": 56,
+      "gender": "F",
+      "position": "Head of HR"
+    },
+    {
+      "name": "Margaret Harris",
+      "age": 19,
+      "gender": "F",
+      "position": "Intern"
+    },
+    {
+      "name": "Ryan Nelson",
+      "age": 31,
+      "gender": "M",
+      "position": "Marketing Manager"
+    },
+    {
+      "name": "Kathy Williams",
+      "age": 49,
+      "gender": "F",
+      "position": "Senior Marketing Manager"
+    },
+    {
+      "name": "Jacqueline Hill",
+      "age": 28,
+      "gender": "F",
+      "position": "Junior Marketing Manager"
+    },
+    {
+      "name": "Donald Morris",
+      "age": 39,
+      "gender": "M",
+      "position": "SEO Specialist"
+    },
+    {
+      "name": "Evelyn Henderson",
+      "age": 24,
+      "gender": "F",
+      "position": "Intern"
+    },
+    {
+      "name": "Earl Moore",
+      "age": 21,
+      "gender": "M",
+      "position": "Junior SEO Specialist"
+    },
+    {
+      "name": "Phillip Sanchez",
+      "age": 35,
+      "gender": "M",
+      "position": "SEM Specialist"
+    }
+  ]
+}
+
+# nested queries cannot be queried in this way!
+GET /department/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "match": {
+            "employees.position": "intern"
+          }
+        },
+        {
+          "term": {
+            "employees.gender": {
+              "value": "F"
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+
+GET /department/_search
+{
+  "query": {
+    "nested": {
+      "path": "employees",
+      "inner_hits": {}, 
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "employees.position": "intern"
+              }
+            },
+            {
+              "term": {
+                "employees.gender.keyword": {
+                  "value": "F"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+
+#
